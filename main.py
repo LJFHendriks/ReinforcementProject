@@ -1,20 +1,37 @@
-import gymnasium as gym
+import gym
 
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
+import os
 
-env = gym.make("CartPole-v1", render_mode="human")
 
-model = DQN("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=10000, log_interval=4)
-model.save("dqn_cartpole")
+hyperparams = {
+    "learning_rate": 6.3e-4,
+    "batch_size": 1280,
+    "buffer_size": 1000000,
+    "learning_starts": 0,
+    "gamma": 0.9,
+    "target_update_interval": 500,
+    "train_freq": 4,
+    "gradient_steps": -1,
+    "exploration_fraction": 0.12,
+    "exploration_final_eps": 0.1,
+    "policy_kwargs": dict(net_arch=[256, 256])
+}
 
-del model # remove to demonstrate saving and loading
+# Create environment
+env = gym.make("LunarLander-v2")
 
-model = DQN.load("dqn_cartpole")
+# Wrap the environment with a Monitor to log the results
+log_dir = "/scratch/cjwever/AIDM_Improved/logs/"
+env = Monitor(env, log_dir)
 
-obs, info = env.reset()
-while True:
-    action, _states = model.predict(obs, deterministic=True)
-    obs, reward, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        obs, info = env.reset()
+# Instantiate the agent
+model = DQN("MlpPolicy", env, **hyperparams, verbose=1)
+
+# Train the agent
+model.learn(total_timesteps=int(5e6),  progress_bar=False)
+
+# Save the agent
+model.save("dqn_lunar")
+del model  # delete trained model to demonstrate loading
