@@ -1,3 +1,3 @@
 # python 3.10
-stable-baselines3[extra]==1.8.0
+stable-baselines3[extra]>=2.0.0a4
 gymnasium==0.28.1
