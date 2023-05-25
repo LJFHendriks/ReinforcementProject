@@ -2,7 +2,6 @@ import gym
 
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
-import os
 
 
 hyperparams = {
