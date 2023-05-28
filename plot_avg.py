@@ -8,6 +8,17 @@ from glob import glob
 log_dirs = sys.argv[1]
 monitor_files = glob(os.path.join(log_dirs, "*"))
 
+
+def moving_average(values, window):
+    """
+    Smooth values by doing a moving average
+    :param values: (numpy array)
+    :param window: (int)
+    :return: (numpy array)
+    """
+    weights = np.repeat(1.0, window) / window
+    return np.convolve(values, weights, "valid")
+
 def plot_average_curve(log_dirs, title="Average Learning Curve"):
   ys=[]
   for dir in log_dirs:
