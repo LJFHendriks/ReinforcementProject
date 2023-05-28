@@ -7,6 +7,9 @@ from stable_baselines3 import DQN
 
 log_location = sys.argv[1]
 
+resets = sys.argv[2]
+
+timesteps = int(5e6)
 
 hyperparams = {
     "learning_rate": 6.3e-4,
@@ -32,9 +35,21 @@ env = Monitor(env, log_dir)
 # Instantiate the agent
 model = DQN("MlpPolicy", env, **hyperparams, verbose=1)
 
-# Train the agent
-model.learn(total_timesteps=int(5e6),  progress_bar=False)
+# Reset the parameters of all the layers
+def reset_parameters(module):
+    if hasattr(module, 'reset_parameters'):
+        module.reset_parameters()
 
+# Train the agent
+resets=resets+1 # since the loop ends with an update
+for i in range(0,resets):
+    # Train for one step    
+    model.learn(total_timesteps=int(timesteps/resets), log_interval=4,reset_num_timesteps=False)
+    if i != resets:
+        # Reset the weights of the model to random values
+        model.policy.q_net.q_net.apply(reset_parameters)
+        model.policy.q_net_target.q_net.apply(reset_parameters)
+        
 # Save the agent
 model.save(log_dir + "dqn_lunar")
 del model  # delete trained model to demonstrate loading
