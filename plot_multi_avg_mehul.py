@@ -28,7 +28,6 @@ def plot_multiple_average_curve(log_dirs_list, title="Average Learning Curve"):
       for r, l in zip(r_list, l_list):
           for i in range(l):
             y.append(r)
-      print(len(y))
       y = moving_average(y, window=20000)
       ys.append(y)
       all_ys.append(y)
