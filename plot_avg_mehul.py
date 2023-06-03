@@ -4,10 +4,7 @@ import os
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 import matplotlib.pyplot as plt
 from glob import glob
-
-log_dirs = sys.argv[1]
-monitor_files = glob(os.path.join(log_dirs, "*"))
-
+import sys
 
 def moving_average(values, window):
     """
@@ -29,7 +26,7 @@ def plot_average_curve(log_dirs, title="Average Learning Curve"):
     for r, l in zip(r_list, l_list):
         for i in range(l):
           y.append(r)
-    y = moving_average(y, window=10000)
+    y = moving_average(y, window=20000)
     ys.append(y)
 
   min_len = np.inf
@@ -53,4 +50,6 @@ def plot_average_curve(log_dirs, title="Average Learning Curve"):
   plt.ylim(-800, 300)
   plt.show()
 
+log_dirs = sys.argv[1]
+monitor_files = glob(os.path.join(log_dirs, "*"))
 plot_average_curve(monitor_files)
