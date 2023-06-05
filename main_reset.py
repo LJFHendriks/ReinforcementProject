@@ -42,6 +42,7 @@ def reset_parameters(module):
     if hasattr(module, 'reset_parameters'):
         module.reset_parameters()
 
+init_optimizer_state=model.policy.optimizer.state_dict()
 # Train the agent
 resets=resets+1 # since the loop ends with an update
 for i in range(0,resets):
@@ -51,6 +52,7 @@ for i in range(0,resets):
         # Reset the weights of the model to random values
         model.policy.q_net.q_net.apply(reset_parameters)
         model.policy.q_net_target.q_net.apply(reset_parameters)
+        model.policy.optimizer.load_state_dict(init_optimizer_state)
 
 # Save the agent
 model.save(log_dir + "dqn_lunar")
