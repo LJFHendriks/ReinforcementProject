@@ -1,9 +1,13 @@
+import sys
+
 import gym
 
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 
 from ensemble_policy import EnsemblePolicy
+
+log_location = sys.argv[1]
 
 
 hyperparams = {
@@ -24,7 +28,7 @@ hyperparams = {
 env = gym.make("LunarLander-v2")
 
 # Wrap the environment with a Monitor to log the results
-log_dir = "/scratch/cjwever/AIDM_Improved/logs/"
+log_dir = "/scratch/cjwever/" + log_location
 env = Monitor(env, log_dir)
 
 # Instantiate the agent
@@ -34,5 +38,5 @@ model = DQN(EnsemblePolicy, env, **hyperparams, verbose=1)
 model.learn(total_timesteps=int(5e6),  progress_bar=False)
 
 # Save the agent
-model.save("dqn_lunar")
+model.save(log_dir + "dqn_lunar")
 del model  # delete trained model to demonstrate loading
