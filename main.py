@@ -3,6 +3,8 @@ import gym
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 
+from ensemble_policy import EnsemblePolicy
+
 
 hyperparams = {
     "learning_rate": 6.3e-4,
@@ -15,7 +17,7 @@ hyperparams = {
     "gradient_steps": -1,
     "exploration_fraction": 0.12,
     "exploration_final_eps": 0.1,
-    "policy_kwargs": dict(net_arch=[256, 256])
+    "policy_kwargs": dict(net_arch=[256, 256], ensemble_size=2)
 }
 
 # Create environment
@@ -26,7 +28,7 @@ log_dir = "/scratch/cjwever/AIDM_Improved/logs/"
 env = Monitor(env, log_dir)
 
 # Instantiate the agent
-model = DQN("MlpPolicy", env, **hyperparams, verbose=1)
+model = DQN(EnsemblePolicy, env, **hyperparams, verbose=1)
 
 # Train the agent
 model.learn(total_timesteps=int(5e6),  progress_bar=False)
