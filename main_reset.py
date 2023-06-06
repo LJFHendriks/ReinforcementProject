@@ -6,7 +6,7 @@ import gym
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 
-log_location = sys.argv[1]
+log_dir = sys.argv[1]
 
 resets = int(sys.argv[2])
 
@@ -30,7 +30,6 @@ hyperparams = {
 env = gym.make("LunarLander-v2")
 
 # Wrap the environment with a Monitor to log the results
-log_dir = "/scratch/cjwever/" + log_location
 os.makedirs(log_dir, exist_ok=True)
 env = Monitor(env, log_dir)
 
