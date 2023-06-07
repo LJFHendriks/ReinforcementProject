@@ -7,7 +7,7 @@ from stable_baselines3 import DQN
 
 from ensemble_policy import EnsemblePolicy
 
-log_location = sys.argv[1]
+# log_location = sys.argv[1]
 
 
 hyperparams = {
@@ -21,14 +21,14 @@ hyperparams = {
     "gradient_steps": -1,
     "exploration_fraction": 0.12,
     "exploration_final_eps": 0.1,
-    "policy_kwargs": dict(net_arch=[256, 256], ensemble_size=2)
+    "policy_kwargs": dict(net_arch=[256, 256], ensemble_size=5)
 }
 
 # Create environment
 env = gym.make("LunarLander-v2")
 
 # Wrap the environment with a Monitor to log the results
-log_dir = "/scratch/cjwever/" + log_location
+log_dir = "/scratch/cjwever/"
 env = Monitor(env, log_dir)
 
 # Instantiate the agent

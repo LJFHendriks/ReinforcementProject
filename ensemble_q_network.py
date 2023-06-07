@@ -1,6 +1,7 @@
 from typing import List, Optional, Type
 
 from gym import spaces
+import torch as th
 from torch import nn, vmap
 
 from torch.func import stack_module_state, functional_call
@@ -61,4 +62,6 @@ class Ensemble(nn.Module):
             self.register_buffer(key, buffer)
 
     def forward(self, *args, **kwargs):
-        return self.vmap_model(self.params, self.buffers, *args, **kwargs)
+        result = self.vmap_model(self.params, self.buffers, *args, **kwargs)[0,:]
+        print(f"{result.shape=}")
+        return result
