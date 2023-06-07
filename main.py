@@ -5,6 +5,7 @@ import gym
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 
+from dqn_ensemble import DQNEnsemble
 from ensemble_policy import EnsemblePolicy
 
 # log_location = sys.argv[1]
@@ -32,7 +33,7 @@ log_dir = "/scratch/cjwever/"
 env = Monitor(env, log_dir)
 
 # Instantiate the agent
-model = DQN(EnsemblePolicy, env, **hyperparams, verbose=1)
+model = DQNEnsemble(EnsemblePolicy, env, **hyperparams, verbose=1)
 
 # Train the agent
 model.learn(total_timesteps=int(5e6),  progress_bar=False)

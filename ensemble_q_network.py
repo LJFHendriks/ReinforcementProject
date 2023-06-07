@@ -63,5 +63,5 @@ class Ensemble(nn.Module):
 
     def forward(self, *args, **kwargs):
         result = self.vmap_model(self.params, self.buffers, *args, **kwargs)[0,:]
-        print(f"{result.shape=}")
+        # print(f"{result.shape=}")
         return result
