@@ -1,3 +1,4 @@
+import random
 from typing import List, Optional, Type
 
 from gym import spaces
@@ -39,12 +40,14 @@ class EnsembleQNetwork(QNetwork):
         action_dim = self.action_space.n
         modules = [nn.Sequential(*create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)) for _ in range(ensemble_size)]
         self.q_net = Ensemble(modules)
+        self.ensemble_size = ensemble_size
 
     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
         q_values = self(observation)
         # Greedy action
         # TODO: Choose random model from ensemble
-        action = q_values[0,:].argmax(dim=1).reshape(-1)
+        model = random.randint(0, self.ensemble_size)
+        action = q_values[model,:].argmax(dim=1).reshape(-1)
         return action
 
 

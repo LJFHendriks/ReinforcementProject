@@ -83,7 +83,7 @@ class DQNEnsemble(DQN):
             with th.no_grad():
                 # Compute the next Q-values using the target network
                 next_q_values = self.q_net_target(replay_data.next_observations)
-                print(f"{next_q_values.shape=}")
+                # print(f"{next_q_values.shape=}")
                 # Follow greedy policy: use the one with the highest value
                 next_q_values, _ = next_q_values.max(dim=-1)
                 # Avoid potential broadcast issue
@@ -99,19 +99,23 @@ class DQNEnsemble(DQN):
             current_q_values = self.q_net(replay_data.observations)
 
             # Retrieve the q-values for the actions from the replay buffer
-            current_q_values = th.gather(current_q_values, dim=-1, index=replay_data.actions.unsqueeze(0).expand(self.policy.ensemble_size, -1, -1).long())
+            action_index = replay_data.actions.expand(self.policy.ensemble_size, -1, -1).long()
+            current_q_values = th.gather(current_q_values, dim=-1, index=action_index).reshape(self.policy.ensemble_size, -1)
             bellman = th.pow(current_q_values - target_q_values, 2)
-            print(f"{bellman.shape=}")
+            # print(f"{bellman.shape=}")
             # Compute weighted Bellman backup loss
             loss_tensor = target_weight * bellman
-            loss = th.mean(loss_tensor)
 
+            #Compute mean over batches per model
+            loss = th.mean(loss_tensor, dim=1)
+            # print(loss)
             # Compute Huber loss (less sensitive to outliers)
-            losses.append(loss.item())
 
             # Optimize the policy
-            self.policy.optimizer.zero_grad()
-            loss.backward()
+            for individual_loss in loss:
+                self.policy.optimizer.zero_grad()
+                losses.append(individual_loss.item())
+                individual_loss.backward(retain_graph = True)
             # Clip gradient norm
             th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()
