@@ -45,8 +45,7 @@ class EnsembleQNetwork(QNetwork):
     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
         q_values = self(observation)
         # Greedy action
-        # TODO: Choose random model from ensemble
-        model = random.randint(0, self.ensemble_size)
+        model = random.randint(0, self.ensemble_size-1)
         action = q_values[model,:].argmax(dim=1).reshape(-1)
         return action
 
