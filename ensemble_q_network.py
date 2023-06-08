@@ -40,6 +40,13 @@ class EnsembleQNetwork(QNetwork):
         modules = [nn.Sequential(*create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)) for _ in range(ensemble_size)]
         self.q_net = Ensemble(modules)
 
+    def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
+        q_values = self(observation)
+        # Greedy action
+        # TODO: Choose random model from ensemble
+        action = q_values[0,:].argmax(dim=1).reshape(-1)
+        return action
+
 
 class Ensemble(nn.Module):
     def __init__(self, modules, **kwargs):
@@ -62,6 +69,4 @@ class Ensemble(nn.Module):
             self.register_buffer(key, buffer)
 
     def forward(self, *args, **kwargs):
-        result = self.vmap_model(self.params, self.buffers, *args, **kwargs)[0,:]
-        # print(f"{result.shape=}")
-        return result
+        return self.vmap_model(self.params, self.buffers, *args, **kwargs)

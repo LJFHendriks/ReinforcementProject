@@ -66,25 +66,8 @@ class DQNEnsemble(DQN):
             seed=seed,
             optimize_memory_usage=optimize_memory_usage,
         )
-
-        self.exploration_initial_eps = exploration_initial_eps
-        self.exploration_final_eps = exploration_final_eps
-        self.exploration_fraction = exploration_fraction
-        self.target_update_interval = target_update_interval
         self.temperature = temperature
         self.confidence_weight = confidence_weight
-        # For updating the target network with multiple envs:
-        self._n_calls = 0
-        self.max_grad_norm = max_grad_norm
-        # "epsilon" for the epsilon-greedy exploration
-        self.exploration_rate = 0.0
-        # Linear schedule will be defined in `_setup_model()`
-        self.exploration_schedule: Schedule
-        self.q_net: th.nn.Module
-        self.q_net_target: th.nn.Module
-
-        if _init_setup_model:
-            self._setup_model()
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)
@@ -100,31 +83,30 @@ class DQNEnsemble(DQN):
             with th.no_grad():
                 # Compute the next Q-values using the target network
                 next_q_values = self.q_net_target(replay_data.next_observations)
+                print(f"{next_q_values.shape=}")
                 # Follow greedy policy: use the one with the highest value
-                next_q_values, _ = next_q_values.max(dim=1)
+                next_q_values, _ = next_q_values.max(dim=-1)
                 # Avoid potential broadcast issue
-                next_q_values = next_q_values.reshape(-1, 1)
+                # next_q_values = next_q_values.reshape(-1, 1)
                 # 1-step TD target
-                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+                rewards = th.t(replay_data.rewards).expand(self.policy.ensemble_size, -1)
+                dones = th.t(replay_data.dones).expand(self.policy.ensemble_size, -1)
+                target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
 
-                target_weight = th.sigmoid(-th.std(target_q_values) * self.temperature) + 0.5
+                target_weight = th.sigmoid(-th.std(next_q_values) * self.temperature) + 0.5
 
             # Get current Q-values estimates
             current_q_values = self.q_net(replay_data.observations)
 
             # Retrieve the q-values for the actions from the replay buffer
-            current_q_values = th.gather(current_q_values, dim=1, index=replay_data.actions.long())
-            bellman = th.pow(
-                current_q_values - replay_data.rewards - self.confidence_weight * target_q_values.argmax(
-                    dim=1).reshape(-1), 2)
-
+            current_q_values = th.gather(current_q_values, dim=-1, index=replay_data.actions.unsqueeze(0).expand(self.policy.ensemble_size, -1, -1).long())
+            bellman = th.pow(current_q_values - target_q_values, 2)
+            print(f"{bellman.shape=}")
             # Compute weighted Bellman backup loss
             loss_tensor = target_weight * bellman
             loss = th.mean(loss_tensor)
-            # loss = current_q_values - replay_data.rewards - self.confidence_weight * next_q_values
 
             # Compute Huber loss (less sensitive to outliers)
-            # loss = F.smooth_l1_loss(current_q_values, target_q_values)
             losses.append(loss.item())
 
             # Optimize the policy
