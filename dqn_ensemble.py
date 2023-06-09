@@ -42,8 +42,7 @@ class DQNEnsemble(DQN):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
-        temperature: float = 1,
-        confidence_weight: float = 0.75
+        temperature: float = 10
     ) -> None:
         super().__init__(
             policy,
@@ -67,7 +66,6 @@ class DQNEnsemble(DQN):
             optimize_memory_usage=optimize_memory_usage,
         )
         self.temperature = temperature
-        self.confidence_weight = confidence_weight
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)
@@ -88,8 +86,8 @@ class DQNEnsemble(DQN):
                 next_q_values, _ = next_q_values.max(dim=-1)
 
                 # 1-step TD target
-                rewards = th.t(replay_data.rewards).expand(self.policy.ensemble_size, -1)
-                dones = th.t(replay_data.dones).expand(self.policy.ensemble_size, -1)
+                rewards = replay_data.rewards.t().expand(self.policy.ensemble_size, -1)
+                dones = replay_data.dones.t().expand(self.policy.ensemble_size, -1)
                 target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
 
                 target_weight = th.sigmoid(-next_q_values.std(0) * self.temperature) + 0.5
@@ -106,13 +104,16 @@ class DQNEnsemble(DQN):
             loss_tensor = target_weight * bellman
 
             #Compute mean over batches per model
-            loss = th.mean(loss_tensor, dim=1)
+            try:
+                loss = th.mean(replay_data.mask.t() * loss_tensor, dim=1)
+            except AttributeError:
+                loss = th.mean(loss_tensor, dim=1)
+
 
             # Optimize the policy
-            for individual_loss in loss:
-                self.policy.optimizer.zero_grad()
-                losses.append(individual_loss.item())
-                individual_loss.backward(retain_graph=True)
+            self.policy.optimizer.zero_grad()
+            losses.append(loss.mean().item())
+            loss.sum().backward()
             # Clip gradient norm
             th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()

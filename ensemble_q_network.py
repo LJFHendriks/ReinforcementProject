@@ -26,7 +26,8 @@ class EnsembleQNetwork(QNetwork):
             net_arch: Optional[List[int]] = None,
             activation_fn: Type[nn.Module] = nn.ReLU,
             normalize_images: bool = True,
-            ensemble_size: int = 1
+            ensemble_size: int = 1,
+            l: float = 1
     ) -> None:
         super().__init__(
             observation_space,
@@ -41,12 +42,13 @@ class EnsembleQNetwork(QNetwork):
         modules = [nn.Sequential(*create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)) for _ in range(ensemble_size)]
         self.q_net = Ensemble(modules)
         self.ensemble_size = ensemble_size
+        self.l = l
 
     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
         q_values = self(observation)
-        # Greedy action
-        model = random.randint(0, self.ensemble_size-1)
-        action = q_values[model,:].argmax(dim=1).reshape(-1)
+
+        # UCB exploration
+        action = (q_values.mean(0) + self.l * q_values.std(0)).argmax(-1)
         return action
 
 
