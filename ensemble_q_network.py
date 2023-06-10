@@ -39,7 +39,7 @@ class EnsembleQNetwork(QNetwork):
             normalize_images
         )
         action_dim = self.action_space.n
-        modules = [nn.Sequential(*create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)) for _ in range(ensemble_size)]
+        modules = [self.q_net] + [nn.Sequential(*create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)) for _ in range(1, ensemble_size)]
         self.q_net = Ensemble(modules)
         self.ensemble_size = ensemble_size
         self.l = l
@@ -48,29 +48,29 @@ class EnsembleQNetwork(QNetwork):
         q_values = self(observation)
 
         # UCB exploration
-        action = (q_values.mean(0) + self.l * q_values.std(0)).argmax(-1)
+        result = q_values.mean(0)
+        if self.ensemble_size > 1:
+            result += self.l * q_values.std(0)
+        action = result.argmax(-1)
         return action
 
 
 class Ensemble(nn.Module):
-    def __init__(self, modules, **kwargs):
+    def __init__(self, models, **kwargs):
         super().__init__()
 
-        self.params, self.buffers = stack_module_state(modules)
+        self.models = nn.ModuleList(models)
 
-        base_model = copy.deepcopy(modules[0])
-        base_model = base_model.to('meta')
-
-        def fmodel(params, buffers, x):
-            return functional_call(base_model, (params, buffers), (x,))
-
-        self.vmap_model = vmap(fmodel, in_dims=(0, 0, None))
-
-        for key, param in self.params.items():
-            self.register_parameter(key.replace('.', '_'), nn.Parameter(param))
-
-        for key, buffer in self.buffers.items():
-            self.register_buffer(key, buffer)
+        # base_model = copy.deepcopy(models[0])
+        # base_model = base_model.to('meta')
+        #
+        # def fmodel(params, buffers, x):
+        #     return functional_call(base_model, (params, buffers), (x,))
+        #
+        # self.vmap_model = vmap(fmodel, in_dims=(0, 0, None))
 
     def forward(self, *args, **kwargs):
-        return self.vmap_model(self.params, self.buffers, *args, **kwargs)
+        # params, buffers = stack_module_state(self.models)
+        #
+        # return self.vmap_model(params, buffers, *args, **kwargs)
+        return th.stack([model(args[0]) for model in self.models])

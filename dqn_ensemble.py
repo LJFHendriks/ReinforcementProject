@@ -4,7 +4,6 @@ import numpy as np
 import torch as th
 from gym import spaces
 from stable_baselines3 import DQN
-from torch.nn import functional as F
 
 from stable_baselines3.common.buffers import ReplayBuffer
 from stable_baselines3.common.type_aliases import GymEnv, Schedule
@@ -89,8 +88,8 @@ class DQNEnsemble(DQN):
                 rewards = replay_data.rewards.t().expand(self.policy.ensemble_size, -1)
                 dones = replay_data.dones.t().expand(self.policy.ensemble_size, -1)
                 target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
-
-                target_weight = th.sigmoid(-next_q_values.std(0) * self.temperature) + 0.5
+                std = next_q_values.std(0) if self.policy.ensemble_size > 1 else th.zeros(next_q_values.shape[-1])
+                target_weight = th.sigmoid(-std * self.temperature) + 0.5
 
             # Get current Q-values estimates
             current_q_values = self.q_net(replay_data.observations)
@@ -108,11 +107,10 @@ class DQNEnsemble(DQN):
                 loss = th.mean(replay_data.mask.t() * loss_tensor, dim=1)
             except AttributeError:
                 loss = th.mean(loss_tensor, dim=1)
-
+            losses.append(loss.mean().item())
 
             # Optimize the policy
             self.policy.optimizer.zero_grad()
-            losses.append(loss.mean().item())
             loss.sum().backward()
             # Clip gradient norm
             th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
