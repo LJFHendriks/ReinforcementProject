@@ -16,7 +16,7 @@ from stable_baselines3.common.torch_layers import (
 from stable_baselines3.dqn.policies import QNetwork
 
 
-class EnsembleQNetwork(QNetwork):
+class QNetworkEnsemble(QNetwork):
     def __init__(
             self,
             observation_space: spaces.Space,

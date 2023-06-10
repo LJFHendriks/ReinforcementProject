@@ -9,7 +9,7 @@ import numpy as np
 from stable_baselines3.common.vec_env import VecNormalize
 
 
-class EnsembleReplayBuffer(ReplayBuffer):
+class ReplayBufferEnsemble(ReplayBuffer):
     """Replay buffer that stores a mask for ensemble learning"""
 
     def __init__(
@@ -60,10 +60,10 @@ class EnsembleReplayBuffer(ReplayBuffer):
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None) -> ReplayBufferSamples:
         samples = super()._get_samples(batch_inds, env)
 
-        return EnsembleReplayBufferSamples(*samples, self.to_torch(self.mask[batch_inds, :]))
+        return ReplayBufferSamplesEnsemble(*samples, self.to_torch(self.mask[batch_inds, :]))
 
 
-class EnsembleReplayBufferSamples(NamedTuple, ReplayBufferSamples):
+class ReplayBufferSamplesEnsemble(NamedTuple, ReplayBufferSamples):
     observations: th.Tensor
     actions: th.Tensor
     next_observations: th.Tensor

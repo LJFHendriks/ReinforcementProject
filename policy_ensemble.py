@@ -11,10 +11,10 @@ from stable_baselines3.common.torch_layers import (
 from stable_baselines3.common.type_aliases import Schedule
 
 from stable_baselines3.dqn.policies import MlpPolicy
-from ensemble_q_network import EnsembleQNetwork
+from q_network_ensemble import QNetworkEnsemble
 
 
-class EnsemblePolicy(MlpPolicy):
+class PolicyEnsemble(MlpPolicy):
     def __init__(
             self,
             observation_space: spaces.Space,
@@ -43,8 +43,8 @@ class EnsemblePolicy(MlpPolicy):
             normalize_images=normalize_images,
         )
 
-    def make_q_net(self) -> EnsembleQNetwork:
+    def make_q_net(self) -> QNetworkEnsemble:
         # Make sure we always have separate networks for features extractors etc
         net_args = self._update_features_extractor(self.net_args, features_extractor=None)
         net_args.update(ensemble_size=self.ensemble_size)
-        return EnsembleQNetwork(**net_args).to(self.device)
+        return QNetworkEnsemble(**net_args).to(self.device)
