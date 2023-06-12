@@ -5,7 +5,7 @@ import gym
 
 from stable_baselines3.common.monitor import Monitor
 
-from dqn_ensemble import DQNEnsemble
+from dqn_combined import DQNCombined
 from policy_ensemble import PolicyEnsemble
 from replay_buffer_ensemble import ReplayBufferEnsemble
 
@@ -30,10 +30,10 @@ os.makedirs(log_dir, exist_ok=True)
 env = Monitor(env, log_dir)
 
 # Instantiate the agent
-model = DQNEnsemble(PolicyEnsemble, env, **hyperparams, verbose=1)
+model = DQNCombined(PolicyEnsemble, env, **hyperparams, verbose=1)
 
 # Train the agent
-model.learn(total_timesteps=int(5e6),  progress_bar=False)
+model.learn(total_timesteps=int(1e6),  progress_bar=False, resets=2, reset_mode='sequential')
 
 # Save the agent
 model.save(log_dir + "dqn_lunar")
