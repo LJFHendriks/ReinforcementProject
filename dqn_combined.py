@@ -26,7 +26,7 @@ class DQNCombined(DQNEnsemble, DQNResetting):
     ) -> SelfDQN:
         if reset_mode == "concurrent":
             return super().learn(
-                total_timesteps=int(total_timesteps / (resets + 1)),
+                total_timesteps=total_timesteps,
                 callback=callback,
                 log_interval=log_interval,
                 tb_log_name=tb_log_name,
@@ -36,18 +36,19 @@ class DQNCombined(DQNEnsemble, DQNResetting):
             )
         elif reset_mode == "sequential":
             total_resets = resets*self.policy.ensemble_size
-            for reset, model in product(range(resets), range(self.policy.ensemble_size)):
-                super().learn(
-                    total_timesteps=int(total_timesteps / (total_resets + 1)),
-                    callback=callback,
-                    log_interval=log_interval,
-                    tb_log_name=tb_log_name,
-                    reset_num_timesteps=reset_num_timesteps,
-                    progress_bar=progress_bar,
-                    resets=0
-                )
-                self.policy.q_net.q_net.models[model].apply(reset_parameters)
-                self.policy.q_net_target.q_net.models[model].apply(reset_parameters)
+            for reset in range(resets):
+                for model in range(self.policy.ensemble_size):
+                    super().learn(
+                        total_timesteps=int(total_timesteps / (total_resets + 1)),
+                        callback=callback,
+                        log_interval=log_interval,
+                        tb_log_name=tb_log_name,
+                        reset_num_timesteps=reset_num_timesteps,
+                        progress_bar=progress_bar,
+                        resets=0
+                    )
+                    self.policy.q_net.q_net.models[model].apply(reset_parameters)
+                    self.policy.q_net_target.q_net.models[model].apply(reset_parameters)
             return super().learn(
                 total_timesteps=int(total_timesteps / (total_resets + 1)),
                 callback=callback,
