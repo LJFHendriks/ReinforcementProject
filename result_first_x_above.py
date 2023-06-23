@@ -75,8 +75,8 @@ if __name__ == "__main__":
     parser.add_argument('-x', type=int)
 
     args = parser.parse_args()
-    args.dirs += [os.path.join('Combination', subdir) for subdir in os.listdir('Combination')]
+    # args.dirs += [os.path.join('Combination', subdir) for subdir in os.listdir('Combination')]
     mean, std =  first_x_above(args.dirs, args.reward, args.x)
     print(mean)
     print(std)
-    to_latex(args.dirs, args.reward, mean, std)
+    # to_latex(args.dirs, args.reward, mean, std)
