@@ -1,20 +1,40 @@
-import gymnasium as gym
+import sys
+import os
 
-from stable_baselines3 import DQN
+import gym
 
-env = gym.make("CartPole-v1", render_mode="human")
+from stable_baselines3.common.monitor import Monitor
 
-model = DQN("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=10000, log_interval=4)
-model.save("dqn_cartpole")
+from dqn_combined import DQNCombined
+from policy_ensemble import PolicyEnsemble
+from replay_buffer_ensemble import ReplayBufferEnsemble
 
-del model # remove to demonstrate saving and loading
+try:
+    log_dir = sys.argv[1]
+except IndexError:
+    log_dir = "result_log"
 
-model = DQN.load("dqn_cartpole")
+ensemble_size = 5
 
-obs, info = env.reset()
-while True:
-    action, _states = model.predict(obs, deterministic=True)
-    obs, reward, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        obs, info = env.reset()
+hyperparams = {
+    "replay_buffer_class": ReplayBufferEnsemble,
+    "replay_buffer_kwargs": dict(ensemble_size=ensemble_size),
+    "policy_kwargs": dict(ensemble_size=ensemble_size)
+}
+
+# Create environment
+env = gym.make("LunarLander-v2")
+
+# Wrap the environment with a Monitor to log the results
+os.makedirs(log_dir, exist_ok=True)
+env = Monitor(env, log_dir)
+
+# Instantiate the agent
+model = DQNCombined(PolicyEnsemble, env, **hyperparams, verbose=1)
+
+# Train the agent
+model.learn(total_timesteps=int(1e6),  progress_bar=False, resets=2, reset_mode='sequential')
+
+# Save the agent
+model.save(log_dir + "dqn_lunar")
+del model  # delete trained model to demonstrate loading
