@@ -1,4 +1,5 @@
 import numpy as np
+import bottleneck as bn
 from matplotlib import pyplot as plt
 from stable_baselines3.common import results_plotter
 from glob import glob
@@ -10,7 +11,6 @@ from os import path
 from stable_baselines3.common.monitor import load_results
 from stable_baselines3.common.results_plotter import ts2xy
 
-log_dir = sys.argv[1]
 
 def moving_average(values, window):
     """
@@ -19,8 +19,7 @@ def moving_average(values, window):
     :param window: (int)
     :return: (numpy array)
     """
-    weights = np.repeat(1.0, window) / window
-    return np.convolve(values, weights, "valid")
+    return bn.move_mean(values, window)[window - 1:]
 
 
 def get_average(list):
@@ -63,4 +62,6 @@ def plot_results(log_folder, title="Learning Curve"):
     plt.savefig(log_dir + '/plot.png')
 
 
-plot_results(log_dir)
+if __name__ == "__main__":
+    log_dir = sys.argv[1]
+    plot_results(log_dir)
